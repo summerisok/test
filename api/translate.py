@@ -5,16 +5,13 @@ import json
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        # 读取请求内容
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data.decode('utf-8'))
         
-        # 获取泰语文本
         thai_text = data.get('text', '')
         
         try:
-            # 分词处理
             words = word_tokenize(thai_text, engine="newmm")
             result = []
             for word in words:
@@ -24,7 +21,6 @@ class handler(BaseHTTPRequestHandler):
                     "chinese": ""
                 })
             
-            # 返回成功结果
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -35,7 +31,6 @@ class handler(BaseHTTPRequestHandler):
             }).encode('utf-8'))
             
         except Exception as e:
-            # 返回错误信息
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
