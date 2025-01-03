@@ -1,6 +1,25 @@
 from http.server import BaseHTTPRequestHandler
 import json
-from pythainlp import word_tokenize
+
+def thai_tokenize(text):
+    # 简单的泰语分词函数
+    words = []
+    current_word = ''
+    
+    for char in text:
+        if ord(char) >= 0x0E00 and ord(char) <= 0x0E7F:  # 泰语字符范围
+            current_word += char
+        else:
+            if current_word:
+                words.append(current_word)
+                current_word = ''
+            if not char.isspace():
+                words.append(char)
+    
+    if current_word:
+        words.append(current_word)
+    
+    return words
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -19,8 +38,8 @@ class handler(BaseHTTPRequestHandler):
             
             thai_text = data.get('text', '')
             
-            # 只做基本分词
-            words = word_tokenize(thai_text)
+            # 使用自定义分词函数
+            words = thai_tokenize(thai_text)
             
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
