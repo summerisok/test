@@ -1,45 +1,31 @@
 from http.server import BaseHTTPRequestHandler
-from pythainlp import word_tokenize
-from pythainlp.transliterate import romanize
 import json
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 简单的健康检查
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write('{"status": "API is working"}'.encode())
+        self.wfile.write(json.dumps({
+            "status": "success",
+            "message": "API is working"
+        }).encode('utf-8'))
 
     def do_POST(self):
         try:
-            # 读取请求内容
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            thai_text = data.get('text', '')
-            
-            # 泰语分词
-            words = word_tokenize(thai_text, engine="newmm")
-            result = []
-            
-            # 处理每个词
-            for word in words:
-                result.append({
-                    "word": word,
-                    "tlit": romanize(word),
-                    "chinese": ""
-                })
-            
-            # 返回结果
+            # 简单返回接收到的数据
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({
                 "status": "success",
-                "words": result
+                "received": data
             }).encode('utf-8'))
             
         except Exception as e:
@@ -54,4 +40,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
