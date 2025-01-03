@@ -2,14 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/*.py",
-      "use": "@vercel/python@3.1.0"
+      "src": "api/translate.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/translate",
-      "dest": "/api/translate.py"
+      "dest": "/api/translate.py",
+      "methods": ["POST", "OPTIONS"]
     }
   ]
 }
