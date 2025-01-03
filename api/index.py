@@ -5,6 +5,12 @@ import json
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            # 检查路径是否为favicon请求
+            if self.path == '/favicon.png':
+                self.send_response(404)
+                self.end_headers()
+                return
+
             # 获取请求中的查询参数 (假设参数名为 'text')
             from urllib.parse import urlparse, parse_qs
             query_components = parse_qs(urlparse(self.path).query)
@@ -32,4 +38,8 @@ class handler(BaseHTTPRequestHandler):
 
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
         except Exception as e:
-            # 捕获异常并返回500
+            # 捕获异常并返回500错误
+            self.send_response(500)
+            self.end_headers()
+            error_message = {'error': str(e)}
+            self.wfile.write(json.dumps(error_message, ensure_ascii=False).encode('utf-8'))
