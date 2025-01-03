@@ -1,7 +1,28 @@
 from http.server import BaseHTTPRequestHandler
-from pythainlp import word_tokenize
-from pythainlp.transliterate import romanize
 import json
+
+# 简单的泰语分词函数
+def simple_thai_tokenize(text):
+    # 泰语字符范围
+    thai_chars = '\u0E00-\u0E7F'
+    
+    words = []
+    current_word = ''
+    
+    for char in text:
+        if any(ord(c) in range(0x0E00, 0x0E7F + 1) for c in char):
+            current_word += char
+        else:
+            if current_word:
+                words.append(current_word)
+                current_word = ''
+            if not char.isspace():
+                words.append(char)
+    
+    if current_word:
+        words.append(current_word)
+    
+    return words
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -22,16 +43,15 @@ class handler(BaseHTTPRequestHandler):
             
             thai_text = data.get('text', '')
             
-            # 泰语分词处理
-            words = word_tokenize(thai_text, engine="newmm")
+            # 使用简单分词
+            words = simple_thai_tokenize(thai_text)
             result = []
             
-            # 为每个词添加罗马音
             for word in words:
                 result.append({
                     "word": word,
-                    "tlit": romanize(word),
-                    "chinese": ""  # 预留中文翻译字段
+                    "tlit": "",  # 暂时不做罗马音转换
+                    "chinese": ""
                 })
             
             self.send_response(200)
