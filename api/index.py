@@ -1,20 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 import json
-
-# 泰语词典
-THAI_DICT = {
-    'สวัสดี': 'sawadee',    # hello
-    'ครับ': 'khrap',       # polite particle (male)
-    'ค่ะ': 'kha',         # polite particle (female)
-    'ขอบคุณ': 'khobkhun',  # thank you
-    'ชื่อ': 'chue',        # name
-    'ผม': 'phom',         # I (male)
-    'ดิฉัน': 'dichan',     # I (female)
-    'เป็น': 'pen',        # to be
-    'อยู่': 'yuu',        # to stay
-    'ไป': 'pai',         # to go
-    'มา': 'ma',          # to come
-}
+from .thai_dict import THAI_DICT  # 导入字典
 
 def thai_tokenize(text):
     words = []
@@ -23,19 +9,18 @@ def thai_tokenize(text):
         found = False
         for word in sorted(THAI_DICT.keys(), key=len, reverse=True):
             if text.startswith(word):
-                words.append({
-                    'word': word,
-                    'tlit': THAI_DICT[word]
-                })
+                word_info = THAI_DICT[word].copy()
+                word_info['word'] = word
+                words.append(word_info)
                 text = text[len(word):]
                 found = True
                 break
         
-        # 如果没找到匹配的词，取第一个字符
         if not found:
             words.append({
                 'word': text[0],
-                'tlit': ''
+                'tlit': '',
+                'chinese': ''
             })
             text = text[1:]
     
@@ -46,7 +31,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
-        message = "Thai Tokenizer API is working!"
+        message = "Thai Dictionary API is working!"
         self.wfile.write(json.dumps({"message": message}).encode())
         return
 
@@ -56,8 +41,6 @@ class handler(BaseHTTPRequestHandler):
         data = json.loads(post_data.decode('utf-8'))
         
         thai_text = data.get('text', '')
-        
-        # 进行分词
         tokens = thai_tokenize(thai_text)
         
         self.send_response(200)
