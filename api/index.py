@@ -1,60 +1,88 @@
-import os
-from pythainlp import word_tokenize
-
-# 设置 PyThaiNLP 数据目录为 /tmp 目录
-os.environ["PYTHAINLP_DATA_DIR"] = "/tmp"
-
-# 然后正常处理其他逻辑
 from http.server import BaseHTTPRequestHandler
 import json
+import re
+
+def thai_tokenize(text):
+    # 定义泰语词典
+    thai_dict = {
+        'สวัสดี': 'sawadee',
+        'ครับ': 'khrap',
+        'ค่ะ': 'kha',
+        'ขอบคุณ': 'khobkhun',
+        'ผม': 'phom',
+        'ดิฉัน': 'dichan',
+        'ชื่อ': 'chue',
+        'อยู่': 'yuu',
+        'ไป': 'pai',
+        'มา': 'ma'
+    }
+    
+    # 找到最长匹配的词
+    result = []
+    while text:
+        longest_match = ''
+        for word in thai_dict:
+            if text.startswith(word) and len(word) > len(longest_match):
+                longest_match = word
+        
+        if longest_match:
+            result.append({
+                'word': longest_match,
+                'tlit': thai_dict[longest_match]
+            })
+            text = text[len(longest_match):]
+        else:
+            # 如果没有匹配到词典中的词，取第一个字符
+            result.append({
+                'word': text[0],
+                'tlit': ''
+            })
+            text = text[1:]
+    
+    return result
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        message = "Thai Tokenizer API is working!"
+        self.wfile.write(json.dumps({"message": message}).encode())
+        return
+
+    def do_POST(self):
         try:
-            # 检查是否请求了 /favicon.png，如果是，则返回404
-            if self.path == '/favicon.png':
-                self.send_response(404)
-                self.end_headers()
-                return
-
-            # 获取请求中的查询参数
-            from urllib.parse import urlparse, parse_qs
-            query_components = parse_qs(urlparse(self.path).query)
-            thai_text = query_components.get('text', None)
-
-            if not thai_text:
-                # 如果未提供文本，返回400 Bad Request
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b'Please provide text to tokenize in Thai.')
-                return
-
-            # 泰语分词
-            segmented_text = word_tokenize(thai_text[0], engine='newmm')
-
-            # 生成JSON响应
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            thai_text = data.get('text', '')
+            
+            # 使用自定义分词函数
+            words = thai_tokenize(thai_text)
+            
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-
-            response = {
-                'original_text': thai_text[0],
-                'segmented_text': segmented_text
-            }
-
-            # 输出响应
-            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-
+            self.wfile.write(json.dumps({
+                "status": "success",
+                "words": words
+            }).encode())
+            
         except Exception as e:
-            # 捕获所有异常，返回500错误，并记录异常信息
             self.send_response(500)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "error",
+                "message": str(e)
+            }).encode())
 
-            error_message = {
-                'error': 'Internal Server Error',
-                'message': str(e)  # 显示具体的异常信息
-            }
-
-            # 输出错误消息
-            self.wfile.write(json.dumps(error_message, ensure_ascii=False).encode('utf-8'))
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
